@@ -1,0 +1,15 @@
+[build-system]
+requires = ["flit_core>=3.2.0,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "erpmin_integrations"
+version = "0.1.0"
+description = "Native Frappe integration layer for OpenCart and Amazon India"
+requires-python = ">=3.10"
+dependencies = [
+    "requests>=2.28.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
