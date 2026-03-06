@@ -26,7 +26,7 @@ def sync_item(item_code):
         return
 
     sku = item.custom_amazon_sku or item_code
-    from erpmin_integrations.doctype.amazon_settings.amazon_settings import get_settings
+    from erpmin_integrations.erpmin_integrations.doctype.amazon_settings.amazon_settings import get_settings
     settings = get_settings()
 
     payload = {

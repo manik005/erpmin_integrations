@@ -82,7 +82,7 @@ def send_shipment_confirmation(delivery_note, amazon_order_id):
 
 
 def _get_marketplace_id():
-    from erpmin_integrations.doctype.amazon_settings.amazon_settings import get_settings
+    from erpmin_integrations.erpmin_integrations.doctype.amazon_settings.amazon_settings import get_settings
     return get_settings().marketplace_id
 
 

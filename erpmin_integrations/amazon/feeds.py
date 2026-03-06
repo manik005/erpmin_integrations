@@ -65,7 +65,7 @@ def submit_feed(feed_type, content, content_type="text/xml; charset=UTF-8"):
     put_resp.raise_for_status()
 
     # Step 3: create feed
-    from erpmin_integrations.doctype.amazon_settings.amazon_settings import get_settings
+    from erpmin_integrations.erpmin_integrations.doctype.amazon_settings.amazon_settings import get_settings
     settings = get_settings()
     feed_resp = client.post(
         f"{FEEDS_API}/feeds",

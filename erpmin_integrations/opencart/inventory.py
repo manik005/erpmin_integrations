@@ -1,6 +1,6 @@
 import frappe
 from erpmin_integrations.opencart.api import get_client
-from erpmin_integrations.doctype.opencart_settings.opencart_settings import get_settings
+from erpmin_integrations.erpmin_integrations.doctype.opencart_settings.opencart_settings import get_settings
 from erpmin_integrations.utils.inventory import get_available_qty
 
 

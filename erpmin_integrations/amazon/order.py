@@ -1,7 +1,7 @@
 import frappe
 from frappe.utils import now_datetime, add_days, today, get_datetime
 from erpmin_integrations.amazon.api import get_client
-from erpmin_integrations.doctype.amazon_settings.amazon_settings import get_settings
+from erpmin_integrations.erpmin_integrations.doctype.amazon_settings.amazon_settings import get_settings
 
 
 def import_orders():
