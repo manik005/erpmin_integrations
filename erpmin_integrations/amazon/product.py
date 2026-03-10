@@ -1,5 +1,11 @@
 import frappe
+from frappe.utils import now_datetime
 from erpmin_integrations.amazon.api import get_client
+from erpmin_integrations.erpmin_integrations.doctype.amazon_settings.amazon_settings import get_settings
+from erpmin_integrations.erpmin_integrations.doctype.channel_category_mapping.channel_category_mapping import (
+    get_amazon_product_type,
+)
+from erpmin_integrations.amazon.attributes import build_attributes
 
 
 def on_item_save(doc, method=None):
@@ -26,30 +32,55 @@ def sync_item(item_code):
         return
 
     sku = item.custom_amazon_sku or item_code
-    from erpmin_integrations.erpmin_integrations.doctype.amazon_settings.amazon_settings import get_settings
     settings = get_settings()
 
+    product_type = (
+        (item.custom_amazon_product_type or "").strip()
+        or get_amazon_product_type(item.item_group)
+        or "PRODUCT"
+    )
+
+    if product_type == "PRODUCT":
+        frappe.logger().warning(
+            f"[Amazon] Item {item_code} has no product type mapping. "
+            "Using generic PRODUCT — listing may be rejected by SP-API."
+        )
+
+    attributes = build_attributes(item, product_type)
+
     payload = {
-        "productType": "PRODUCT",
+        "productType": product_type,
         "requirements": "LISTING",
-        "attributes": {
-            "item_name": [{"value": item.item_name, "language_tag": "en_IN"}],
-            "externally_assigned_product_identifier": [
-                {"type": "ean", "value": item.barcodes[0].barcode}
-            ] if item.barcodes else [],
-        },
+        "attributes": attributes,
     }
 
+    url = (
+        f"/listings/2021-08-01/items/{settings.seller_id}/{sku}"
+        f"?marketplaceIds={settings.marketplace_id}&productType={product_type}"
+    )
+
     try:
-        client.post(
-            f"/listings/2021-08-01/items/{settings.seller_id}/{sku}"
-            f"?marketplaceIds={settings.marketplace_id}",
-            payload,
+        client.put_listing(url, payload)
+        frappe.db.set_value(
+            "Item",
+            item_code,
+            {
+                "custom_amazon_status": "Active",
+                "custom_amazon_last_sync": now_datetime(),
+                "custom_amazon_sync_error": "",
+            },
         )
-        frappe.db.set_value("Item", item_code, "custom_amazon_status", "Active")
-    except Exception:
+    except Exception as e:
+        error_msg = str(e)[:500]
         frappe.log_error(frappe.get_traceback(), f"[Amazon] sync_item failed: {item_code}")
-        frappe.db.set_value("Item", item_code, "custom_amazon_status", "Error")
+        frappe.db.set_value(
+            "Item",
+            item_code,
+            {
+                "custom_amazon_status": "Error",
+                "custom_amazon_sync_error": error_msg,
+            },
+        )
 
 
 def full_product_sync():

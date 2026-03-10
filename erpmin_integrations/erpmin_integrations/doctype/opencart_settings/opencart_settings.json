@@ -7,7 +7,7 @@
  "field_order": [
   "enabled",
   "api_url",
-  "api_token",
+  "api_key",
   "section_defaults",
   "default_warehouse",
   "default_price_list"
@@ -26,9 +26,9 @@
    "reqd": 1
   },
   {
-   "fieldname": "api_token",
+   "fieldname": "api_key",
    "fieldtype": "Password",
-   "label": "API Token",
+   "label": "API Key",
    "reqd": 1
   },
   {

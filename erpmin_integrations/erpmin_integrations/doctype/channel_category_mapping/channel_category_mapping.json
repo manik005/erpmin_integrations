@@ -8,7 +8,8 @@
  "field_order": [
   "item_group",
   "opencart_category_id",
-  "opencart_category_name"
+  "opencart_category_name",
+  "amazon_product_type"
  ],
  "fields": [
   {
@@ -32,6 +33,13 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "OpenCart Category Name"
+  },
+  {
+   "fieldname": "amazon_product_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Amazon Product Type",
+   "description": "SP-API product type e.g. CLOTHING, CONSUMER_ELECTRONICS, HOME_FURNISHING"
   }
  ],
  "links": [],

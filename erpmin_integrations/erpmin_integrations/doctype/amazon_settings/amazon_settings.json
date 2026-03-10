@@ -14,7 +14,11 @@
   "lwa_client_secret",
   "lwa_refresh_token",
   "section_sync",
-  "last_order_sync_time"
+  "last_order_sync_time",
+  "section_defaults",
+  "default_warehouse",
+  "default_customer_group",
+  "default_territory"
  ],
  "fields": [
   {
@@ -75,6 +79,35 @@
    "fieldname": "last_order_sync_time",
    "fieldtype": "Datetime",
    "label": "Last Order Sync Time"
+  },
+  {
+   "fieldname": "section_defaults",
+   "fieldtype": "Section Break",
+   "label": "Defaults"
+  },
+  {
+   "description": "Warehouse used for Amazon Sales Orders",
+   "fieldname": "default_warehouse",
+   "fieldtype": "Link",
+   "label": "Default Warehouse",
+   "options": "Warehouse",
+   "reqd": 1
+  },
+  {
+   "default": "Individual",
+   "fieldname": "default_customer_group",
+   "fieldtype": "Link",
+   "label": "Default Customer Group",
+   "options": "Customer Group",
+   "reqd": 1
+  },
+  {
+   "default": "India",
+   "fieldname": "default_territory",
+   "fieldtype": "Link",
+   "label": "Default Territory",
+   "options": "Territory",
+   "reqd": 1
   }
  ],
  "issingle": 1,

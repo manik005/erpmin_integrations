@@ -1,0 +1,77 @@
+{
+  "actions": [],
+  "autoname": "hash",
+  "creation": "2026-03-10 00:00:00.000000",
+  "doctype": "DocType",
+  "editable_grid": 1,
+  "engine": "InnoDB",
+  "field_order": [
+    "feed_id",
+    "feed_type",
+    "status",
+    "item_count",
+    "submitted_at",
+    "resolved_at",
+    "error_message"
+  ],
+  "fields": [
+    {
+      "fieldname": "feed_id",
+      "fieldtype": "Data",
+      "in_list_view": 1,
+      "label": "Feed ID",
+      "reqd": 1,
+      "unique": 1
+    },
+    {
+      "fieldname": "feed_type",
+      "fieldtype": "Data",
+      "in_list_view": 1,
+      "label": "Feed Type"
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "in_list_view": 1,
+      "label": "Status",
+      "options": "IN_QUEUE\nIN_PROGRESS\nDONE\nFATAL\nCANCELLED\nTIMEOUT",
+      "default": "IN_QUEUE"
+    },
+    {
+      "fieldname": "item_count",
+      "fieldtype": "Int",
+      "label": "Item Count"
+    },
+    {
+      "fieldname": "submitted_at",
+      "fieldtype": "Datetime",
+      "label": "Submitted At"
+    },
+    {
+      "fieldname": "resolved_at",
+      "fieldtype": "Datetime",
+      "label": "Resolved At"
+    },
+    {
+      "fieldname": "error_message",
+      "fieldtype": "Long Text",
+      "label": "Error Message"
+    }
+  ],
+  "issingle": 0,
+  "links": [],
+  "modified": "2026-03-10 00:00:00.000000",
+  "modified_by": "Administrator",
+  "module": "Erpmin Integrations",
+  "name": "Amazon Feed Log",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "read": 1,
+      "role": "System Manager"
+    }
+  ],
+  "sort_field": "submitted_at",
+  "sort_order": "DESC",
+  "track_changes": 0
+}

@@ -17,6 +17,9 @@ doc_events = {
     "Delivery Note": {
         "on_submit": "erpmin_integrations.amazon.fulfillment.on_delivery_note_submit",
     },
+    "Channel Category Mapping": {
+        "after_save": "erpmin_integrations.erpmin_integrations.doctype.channel_category_mapping.channel_category_mapping.on_mapping_save",
+    },
 }
 
 scheduler_events = {
@@ -27,6 +30,9 @@ scheduler_events = {
         ],
         "*/15 * * * *": [
             "erpmin_integrations.amazon.order.import_orders",
+        ],
+        "*/5 * * * *": [
+            "erpmin_integrations.amazon.feeds.check_pending_feeds",
         ],
         "0 2 * * *": [
             "erpmin_integrations.opencart.product.full_product_sync",

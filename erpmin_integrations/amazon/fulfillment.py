@@ -52,7 +52,7 @@ def send_shipment_confirmation(delivery_note, amazon_order_id):
         amazon_sku = frappe.db.get_value("Item", sku, "custom_amazon_sku") or sku
         ship_items.append(
             {
-                "orderItemId": item.so_detail or "",
+                "orderItemId": getattr(item, "custom_amazon_order_item_id", "") or item.so_detail or "",
                 "quantity": int(item.qty),
                 "itemLevelSellerInputsList": [],
             }

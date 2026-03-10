@@ -1,6 +1,7 @@
 import frappe
 from erpmin_integrations.amazon.api import get_client
-from erpmin_integrations.amazon.feeds import build_inventory_feed, submit_feed, poll_feed
+from erpmin_integrations.amazon.feeds import build_inventory_feed, submit_feed
+from erpmin_integrations.erpmin_integrations.doctype.amazon_settings.amazon_settings import get_settings
 from erpmin_integrations.utils.inventory import get_available_qty
 
 BATCH_SIZE = 100
@@ -32,16 +33,10 @@ def sync_all_inventory():
 
 
 def _submit_inventory_batch(batch):
-    xml_content = build_inventory_feed(batch)
-    feed_id = submit_feed("POST_INVENTORY_AVAILABILITY_DATA", xml_content)
+    settings = get_settings()
+    xml_content = build_inventory_feed(batch, seller_id=settings.seller_id)
+    feed_id = submit_feed("POST_INVENTORY_AVAILABILITY_DATA", xml_content, item_count=len(batch))
     if not feed_id:
         return
 
-    result = poll_feed(feed_id)
-    if result and result.get("processingStatus") != "DONE":
-        frappe.log_error(
-            f"Feed {feed_id} status: {result.get('processingStatus')}",
-            "[Amazon] inventory feed did not complete successfully",
-        )
-    else:
-        frappe.logger().info(f"[Amazon] inventory feed {feed_id} complete")
+    frappe.logger().info(f"[Amazon] inventory feed {feed_id} submitted ({len(batch)} items), awaiting async status check")

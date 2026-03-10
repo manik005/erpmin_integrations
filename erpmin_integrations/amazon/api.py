@@ -111,6 +111,16 @@ class SPAPIClient:
             raise AmazonAPIError(f"SP-API POST {path} failed: {resp.status_code} {resp.text}")
         return resp.json()
 
+    def put_listing(self, path, data=None):
+        """PUT to Listings API (create or update a listing)."""
+        url = f"{SP_API_BASE}{path}"
+        resp = requests.put(
+            url, headers=self._get_headers(), json=data, timeout=30
+        )
+        if not resp.ok:
+            raise AmazonAPIError(f"SP-API PUT {path} failed: {resp.status_code} {resp.text}")
+        return resp.json()
+
     def get_orders(self, created_after, statuses=None):
         params = {
             "MarketplaceIds": self.marketplace_id,
