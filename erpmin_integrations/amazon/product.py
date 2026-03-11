@@ -1,8 +1,8 @@
 import frappe
 from frappe.utils import now_datetime
 from erpmin_integrations.amazon.api import get_client
-from erpmin_integrations.erpmin_integrations.doctype.amazon_settings.amazon_settings import get_settings
-from erpmin_integrations.erpmin_integrations.doctype.channel_category_mapping.channel_category_mapping import (
+from erpmin_integrations.doctype.amazon_settings.amazon_settings import get_settings
+from erpmin_integrations.doctype.channel_category_mapping.channel_category_mapping import (
     get_amazon_product_type,
 )
 from erpmin_integrations.amazon.attributes import build_attributes
@@ -48,6 +48,16 @@ def sync_item(item_code):
 
     attributes = build_attributes(item, product_type)
 
+    price = _get_item_price(item_code, getattr(settings, "default_price_list", None))
+    if price is not None:
+        attributes["purchasable_offer"] = [
+            {
+                "currency": "INR",
+                "our_price": [{"schedule": [{"value_with_tax": price}]}],
+                "marketplace_id": settings.marketplace_id,
+            }
+        ]
+
     payload = {
         "productType": product_type,
         "requirements": "LISTING",
@@ -81,6 +91,20 @@ def sync_item(item_code):
                 "custom_amazon_sync_error": error_msg,
             },
         )
+
+
+def _get_item_price(item_code: str, price_list: str | None) -> float | None:
+    """Return selling price (with tax) from Item Price for the given price list, or None."""
+    if not price_list:
+        return None
+    result = frappe.db.get_value(
+        "Item Price",
+        {"item_code": item_code, "price_list": price_list, "selling": 1},
+        "price_list_rate",
+    )
+    if result is None:
+        return None
+    return float(result)
 
 
 def full_product_sync():

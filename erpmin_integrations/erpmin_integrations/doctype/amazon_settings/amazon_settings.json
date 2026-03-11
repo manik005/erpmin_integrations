@@ -18,7 +18,8 @@
   "section_defaults",
   "default_warehouse",
   "default_customer_group",
-  "default_territory"
+  "default_territory",
+  "default_price_list"
  ],
  "fields": [
   {
@@ -108,6 +109,13 @@
    "label": "Default Territory",
    "options": "Territory",
    "reqd": 1
+  },
+  {
+   "description": "Price list used to fetch item prices for Amazon listings (e.g. Standard Selling)",
+   "fieldname": "default_price_list",
+   "fieldtype": "Link",
+   "label": "Default Price List",
+   "options": "Price List"
   }
  ],
  "issingle": 1,

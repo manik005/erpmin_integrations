@@ -18,7 +18,7 @@ doc_events = {
         "on_submit": "erpmin_integrations.amazon.fulfillment.on_delivery_note_submit",
     },
     "Channel Category Mapping": {
-        "after_save": "erpmin_integrations.erpmin_integrations.doctype.channel_category_mapping.channel_category_mapping.on_mapping_save",
+        "after_save": "erpmin_integrations.doctype.channel_category_mapping.channel_category_mapping.on_mapping_save",
     },
 }
 

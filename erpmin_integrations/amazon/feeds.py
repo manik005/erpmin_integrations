@@ -8,7 +8,7 @@ import frappe
 import requests
 from frappe.utils import now_datetime
 from erpmin_integrations.amazon.api import get_client, AmazonAPIError
-from erpmin_integrations.erpmin_integrations.doctype.amazon_settings.amazon_settings import get_settings
+from erpmin_integrations.doctype.amazon_settings.amazon_settings import get_settings
 
 FEEDS_API = "/feeds/2021-06-30"
 _PENDING_STATUSES = ("IN_QUEUE", "IN_PROGRESS")

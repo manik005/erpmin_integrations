@@ -1,7 +1,8 @@
 import frappe
 from frappe.utils import now_datetime
 from erpmin_integrations.opencart.api import get_client
-from erpmin_integrations.erpmin_integrations.doctype.opencart_settings.opencart_settings import get_settings
+from erpmin_integrations.doctype.opencart_settings.opencart_settings import get_settings
+from erpmin_integrations.customer import get_or_create_customer
 
 
 def import_orders():
@@ -32,7 +33,8 @@ def _create_sales_order(client, order_id, settings):
     if not order:
         return
 
-    customer = _get_or_create_customer(order)
+    customer_data = _normalize_customer_data(order)
+    customer = get_or_create_customer(customer_data)
 
     so = frappe.new_doc("Sales Order")
     so.customer = customer
@@ -67,20 +69,31 @@ def _create_sales_order(client, order_id, settings):
     frappe.logger().info(f"[OpenCart] Imported order {order_id} → {so.name}")
 
 
-def _get_or_create_customer(order):
-    email = order.get("email", "")
-    name = f"{order.get('firstname', '')} {order.get('lastname', '')}".strip()
-    if not name:
-        name = email or "OpenCart Customer"
+def _normalize_customer_data(order: dict) -> dict:
+    first = (order.get("firstname") or "").strip()
+    last = (order.get("lastname") or "").strip()
+    name = f"{first} {last}".strip() or order.get("email", "")
 
-    existing = frappe.db.get_value("Customer", {"customer_name": name})
-    if existing:
-        return existing
+    def _build_addr(prefix):
+        line1 = (order.get(f"{prefix}address_1") or "").strip()
+        if not line1:
+            return None
+        return {
+            "line1": line1,
+            "line2": order.get(f"{prefix}address_2", "") or "",
+            "city": order.get(f"{prefix}city", ""),
+            "state": order.get(f"{prefix}zone", ""),
+            "pincode": order.get(f"{prefix}postcode", ""),
+            "country": order.get(f"{prefix}country") or "India",
+            "phone": "",
+        }
 
-    customer = frappe.new_doc("Customer")
-    customer.customer_name = name
-    customer.customer_type = "Individual"
-    customer.customer_group = "Individual"
-    customer.territory = "India"
-    customer.insert(ignore_permissions=True)
-    return customer.name
+    return {
+        "name": name,
+        "email": order.get("email", ""),
+        "phone": order.get("telephone", ""),
+        "source": "OpenCart",
+        "shipping_address": _build_addr("shipping_"),
+        "billing_address": _build_addr("payment_"),
+        "gstin": "",
+    }

@@ -1,7 +1,7 @@
 import frappe
 from erpmin_integrations.opencart.api import get_client
-from erpmin_integrations.erpmin_integrations.doctype.opencart_settings.opencart_settings import get_settings
-from erpmin_integrations.erpmin_integrations.doctype.channel_category_mapping.channel_category_mapping import (
+from erpmin_integrations.doctype.opencart_settings.opencart_settings import get_settings
+from erpmin_integrations.doctype.channel_category_mapping.channel_category_mapping import (
     get_category_id,
 )
 

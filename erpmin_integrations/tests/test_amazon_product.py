@@ -20,10 +20,11 @@ class TestAmazonProduct(FrappeTestCase):
         item.custom_amazon_description = ""
         return item
 
-    def _make_settings(self):
+    def _make_settings(self, price_list=None):
         settings = MagicMock()
         settings.seller_id = "SELLER123"
         settings.marketplace_id = "A21TJRUUN4KGV"
+        settings.default_price_list = price_list
         return settings
 
     @patch("erpmin_integrations.amazon.product.get_client")
@@ -112,3 +113,47 @@ class TestAmazonProduct(FrappeTestCase):
             None,
         )
         self.assertIsNotNone(error_call)
+
+    @patch("erpmin_integrations.amazon.product.get_client")
+    @patch("erpmin_integrations.amazon.product.get_settings")
+    @patch("erpmin_integrations.amazon.product.get_amazon_product_type", return_value="CLOTHING")
+    @patch("frappe.get_doc")
+    @patch("frappe.db.set_value")
+    @patch("frappe.db.get_value", return_value=499.00)
+    def test_price_included_in_payload_when_price_list_set(
+        self, mock_db_get, mock_set_value, mock_get_doc, mock_get_ptype, mock_get_settings, mock_get_client
+    ):
+        item = self._make_item()
+        mock_get_doc.return_value = item
+        mock_get_settings.return_value = self._make_settings(price_list="Standard Selling")
+        client = MagicMock()
+        mock_get_client.return_value = client
+
+        from erpmin_integrations.amazon.product import sync_item
+        sync_item("ITEM-001")
+
+        payload = client.put_listing.call_args[0][1]
+        offer = payload["attributes"].get("purchasable_offer")
+        self.assertIsNotNone(offer)
+        self.assertEqual(offer[0]["our_price"][0]["schedule"][0]["value_with_tax"], 499.0)
+        self.assertEqual(offer[0]["currency"], "INR")
+
+    @patch("erpmin_integrations.amazon.product.get_client")
+    @patch("erpmin_integrations.amazon.product.get_settings")
+    @patch("erpmin_integrations.amazon.product.get_amazon_product_type", return_value="CLOTHING")
+    @patch("frappe.get_doc")
+    @patch("frappe.db.set_value")
+    def test_price_omitted_when_no_price_list(
+        self, mock_set_value, mock_get_doc, mock_get_ptype, mock_get_settings, mock_get_client
+    ):
+        item = self._make_item()
+        mock_get_doc.return_value = item
+        mock_get_settings.return_value = self._make_settings(price_list=None)
+        client = MagicMock()
+        mock_get_client.return_value = client
+
+        from erpmin_integrations.amazon.product import sync_item
+        sync_item("ITEM-001")
+
+        payload = client.put_listing.call_args[0][1]
+        self.assertNotIn("purchasable_offer", payload["attributes"])

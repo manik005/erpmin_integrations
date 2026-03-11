@@ -5,6 +5,7 @@ def after_install():
     _add_item_custom_fields()
     _add_sales_order_custom_fields()
     _add_sales_order_item_custom_fields()
+    _add_customer_custom_fields()
     frappe.db.commit()
 
 
@@ -146,6 +147,21 @@ def _add_sales_order_item_custom_fields():
             "label": "Amazon Order Item ID",
             "fieldtype": "Data",
             "insert_after": "item_code",
+            "read_only": 1,
+        },
+    ]
+    _save_fields(fields)
+
+
+def _add_customer_custom_fields():
+    fields = [
+        {
+            "dt": "Customer",
+            "fieldname": "custom_source_channel",
+            "label": "Source Channel",
+            "fieldtype": "Select",
+            "options": "\nAmazon\nOpenCart\nPOS",
+            "insert_after": "customer_group",
             "read_only": 1,
         },
     ]

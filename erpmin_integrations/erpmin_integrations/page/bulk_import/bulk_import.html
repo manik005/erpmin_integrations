@@ -1,0 +1,179 @@
+<div class="bulk-import-page" style="padding: 15px;">
+  <ul class="nav nav-tabs" id="bulk-import-tabs" role="tablist">
+    <li class="nav-item">
+      <a class="nav-link active" id="tab-cat-link" data-toggle="tab"
+         href="javascript:void(0)" data-target="#tab-category-mapping" role="tab">
+        Category Mapping
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="tab-item-link" data-toggle="tab"
+         href="javascript:void(0)" data-target="#tab-item-amazon" role="tab">
+        Item Amazon Fields
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" id="tab-sync-link" data-toggle="tab"
+         href="javascript:void(0)" data-target="#tab-sync-now" role="tab">
+        Sync Now
+      </a>
+    </li>
+  </ul>
+
+  <div class="tab-content mt-4">
+
+    <!-- ── Category Mapping tab ── -->
+    <div class="tab-pane fade show active" id="tab-category-mapping" role="tabpanel">
+      <p class="text-muted">
+        Import Channel Category Mapping records.<br>
+        <strong>Columns:</strong>
+        item_group, opencart_category_id, opencart_category_name, amazon_product_type
+      </p>
+      <button class="btn btn-sm btn-default download-template-btn mb-3">
+        ⬇ Download Template
+      </button>
+      <div class="form-group">
+        <label>Select CSV file</label>
+        <input type="file" class="form-control-file csv-file-input" accept=".csv">
+      </div>
+      <button class="btn btn-primary import-btn mt-2" disabled>Import</button>
+      <div class="import-results mt-4" style="display:none;"></div>
+    </div>
+
+    <!-- ── Item Amazon Fields tab ── -->
+    <div class="tab-pane fade" id="tab-item-amazon" role="tabpanel">
+      <p class="text-muted">
+        Bulk update Amazon fields on Item records.<br>
+        <strong>Columns:</strong>
+        item_code, custom_amazon_product_type, custom_amazon_brand,
+        custom_amazon_color, custom_amazon_size,
+        custom_amazon_bullet_points, custom_amazon_description
+      </p>
+      <button class="btn btn-sm btn-default download-template-btn mb-3">
+        ⬇ Download Template
+      </button>
+      <div class="form-group">
+        <label>Select CSV file</label>
+        <input type="file" class="form-control-file csv-file-input" accept=".csv">
+      </div>
+      <button class="btn btn-primary import-btn mt-2" disabled>Import</button>
+      <div class="import-results mt-4" style="display:none;"></div>
+    </div>
+
+    <!-- ── Sync Now tab ── -->
+    <div class="tab-pane fade" id="tab-sync-now" role="tabpanel">
+      <p class="text-muted mb-4">
+        Manually trigger a sync job. Each button enqueues a background job — the page does not need to stay open.
+      </p>
+
+      <!-- OpenCart section -->
+      <div class="card mb-4">
+        <div class="card-header"><strong>OpenCart ↔ ERP</strong></div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <h6>Products</h6>
+              <p class="text-muted small">Full product sync from ERP → OpenCart (all items with sync enabled).</p>
+              <button class="btn btn-primary sync-btn" data-method="erpmin_integrations.bulk_import.trigger_opencart_product_sync">
+                ▶ Sync Products
+              </button>
+              <div class="sync-status mt-2"></div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <h6>Inventory</h6>
+              <p class="text-muted small">Push current stock quantities from ERP → OpenCart.</p>
+              <button class="btn btn-primary sync-btn" data-method="erpmin_integrations.bulk_import.trigger_opencart_inventory_sync">
+                ▶ Sync Inventory
+              </button>
+              <div class="sync-status mt-2"></div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <h6>Orders</h6>
+              <p class="text-muted small">Import new orders from OpenCart → ERP Sales Orders.</p>
+              <button class="btn btn-primary sync-btn" data-method="erpmin_integrations.bulk_import.trigger_opencart_order_import">
+                ▶ Import Orders
+              </button>
+              <div class="sync-status mt-2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Amazon section -->
+      <div class="card mb-4">
+        <div class="card-header"><strong>Amazon ↔ ERP</strong></div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <h6>Products</h6>
+              <p class="text-muted small">Full product sync from ERP → Amazon (all items with sync enabled).</p>
+              <button class="btn btn-primary sync-btn" data-method="erpmin_integrations.bulk_import.trigger_amazon_product_sync">
+                ▶ Sync Products
+              </button>
+              <div class="sync-status mt-2"></div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <h6>Inventory</h6>
+              <p class="text-muted small">Push current stock quantities from ERP → Amazon via Feeds API.</p>
+              <button class="btn btn-primary sync-btn" data-method="erpmin_integrations.bulk_import.trigger_amazon_inventory_sync">
+                ▶ Sync Inventory
+              </button>
+              <div class="sync-status mt-2"></div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <h6>Orders</h6>
+              <p class="text-muted small">Import new orders from Amazon SP-API → ERP Sales Orders.</p>
+              <button class="btn btn-primary sync-btn" data-method="erpmin_integrations.bulk_import.trigger_amazon_order_import">
+                ▶ Import Orders
+              </button>
+              <div class="sync-status mt-2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Mapping sync section -->
+      <div class="card mb-4">
+        <div class="card-header"><strong>Category Mappings</strong></div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <h6>Re-sync to OpenCart</h6>
+              <p class="text-muted small">Re-push all items in mapped item groups to OpenCart with updated category assignments.</p>
+              <button class="btn btn-primary sync-btn" data-method="erpmin_integrations.bulk_import.trigger_opencart_category_resync">
+                ▶ Sync Categories (OpenCart)
+              </button>
+              <div class="sync-status mt-2"></div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <h6>Re-sync to Amazon</h6>
+              <p class="text-muted small">Re-push all items in mapped item groups to Amazon with updated product type assignments.</p>
+              <button class="btn btn-primary sync-btn" data-method="erpmin_integrations.bulk_import.trigger_amazon_category_resync">
+                ▶ Sync Categories (Amazon)
+              </button>
+              <div class="sync-status mt-2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bench commands reference -->
+      <div class="card">
+        <div class="card-header"><strong>Bench Commands (CLI)</strong></div>
+        <div class="card-body">
+          <p class="text-muted small mb-2">Run these inside the <code>ERP-app</code> container:</p>
+          <pre class="bg-light p-3 small"><code># OpenCart
+bench --site erp.local execute erpmin_integrations.opencart.product.full_product_sync
+bench --site erp.local execute erpmin_integrations.opencart.inventory.sync_all_inventory
+bench --site erp.local execute erpmin_integrations.opencart.order.import_orders
+
+# Amazon
+bench --site erp.local execute erpmin_integrations.amazon.product.full_product_sync
+bench --site erp.local execute erpmin_integrations.amazon.inventory.sync_all_inventory
+bench --site erp.local execute erpmin_integrations.amazon.order.import_orders</code></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

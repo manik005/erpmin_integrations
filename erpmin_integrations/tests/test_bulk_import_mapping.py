@@ -3,7 +3,7 @@ import io
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
-from erpmin_integrations.erpmin_integrations.doctype.channel_category_mapping.channel_category_mapping import (
+from erpmin_integrations.doctype.channel_category_mapping.channel_category_mapping import (
     import_category_mappings,
     get_category_mapping_template,
 )

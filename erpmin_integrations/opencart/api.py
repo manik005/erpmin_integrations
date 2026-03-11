@@ -64,7 +64,7 @@ class OpenCartClient:
 
 
 def get_client():
-    from erpmin_integrations.erpmin_integrations.doctype.opencart_settings.opencart_settings import get_settings
+    from erpmin_integrations.doctype.opencart_settings.opencart_settings import get_settings
 
     settings = get_settings()
     if not settings.enabled:

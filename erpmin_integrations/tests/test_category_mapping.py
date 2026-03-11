@@ -1,6 +1,6 @@
 import frappe
 from frappe.tests.utils import FrappeTestCase
-from erpmin_integrations.erpmin_integrations.doctype.channel_category_mapping.channel_category_mapping import (
+from erpmin_integrations.doctype.channel_category_mapping.channel_category_mapping import (
     get_category_id,
     get_amazon_product_type,
 )

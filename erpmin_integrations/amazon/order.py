@@ -1,7 +1,8 @@
 import frappe
 from frappe.utils import now_datetime, add_days, today, get_datetime
 from erpmin_integrations.amazon.api import get_client
-from erpmin_integrations.erpmin_integrations.doctype.amazon_settings.amazon_settings import get_settings
+from erpmin_integrations.doctype.amazon_settings.amazon_settings import get_settings
+from erpmin_integrations.customer import get_or_create_customer
 
 
 def import_orders():
@@ -58,8 +59,8 @@ def _create_sales_order(client, amz_order, settings):
     if not order_items:
         return
 
-    buyer = amz_order.get("BuyerInfo", {})
-    customer = _get_or_create_customer(buyer, order_id, settings)
+    customer_data = _normalize_customer_data(amz_order)
+    customer = get_or_create_customer(customer_data)
 
     so = frappe.new_doc("Sales Order")
     so.customer = customer
@@ -118,28 +119,34 @@ def _resolve_item_code(sku: str | None) -> str | None:
     return matched or None
 
 
-def _get_or_create_customer(buyer: dict, order_id: str, settings) -> str:
-    """Get or create a Customer. Deduplicates by email first, then by name."""
-    email = buyer.get("BuyerEmail", "")
-    name = buyer.get("BuyerName") or f"Amazon Customer {order_id}"
+def _normalize_customer_data(amz_order: dict) -> dict:
+    """Map a raw Amazon order dict to the common customer data shape."""
+    buyer = amz_order.get("BuyerInfo", {})
+    tax_info = buyer.get("BuyerTaxInfo") or {}
+    shipping_raw = amz_order.get("ShippingAddress") or {}
 
-    # Deduplicate by email (most reliable)
-    if email:
-        existing = frappe.db.get_value("Customer", {"email_id": email})
-        if existing:
-            return existing
+    shipping = None
+    if shipping_raw.get("AddressLine1"):
+        shipping = {
+            "line1": shipping_raw.get("AddressLine1", ""),
+            "line2": (
+                (shipping_raw.get("AddressLine2") or "")
+                + " "
+                + (shipping_raw.get("AddressLine3") or "")
+            ).strip(),
+            "city": shipping_raw.get("City", ""),
+            "state": shipping_raw.get("StateOrRegion", ""),
+            "pincode": shipping_raw.get("PostalCode", ""),
+            "country": shipping_raw.get("CountryCode") or "India",
+            "phone": shipping_raw.get("Phone", ""),
+        }
 
-    # Deduplicate by name as fallback
-    existing = frappe.db.get_value("Customer", {"customer_name": name})
-    if existing:
-        return existing
-
-    customer = frappe.new_doc("Customer")
-    customer.customer_name = name
-    customer.customer_type = "Individual"
-    customer.customer_group = settings.default_customer_group or "Individual"
-    customer.territory = settings.default_territory or "India"
-    if email:
-        customer.email_id = email
-    customer.insert(ignore_permissions=True)
-    return customer.name
+    return {
+        "name": buyer.get("BuyerName", ""),
+        "email": buyer.get("BuyerEmail", ""),
+        "phone": "",
+        "source": "Amazon",
+        "shipping_address": shipping,
+        "billing_address": None,
+        "gstin": tax_info.get("TaxingRegion", ""),
+    }

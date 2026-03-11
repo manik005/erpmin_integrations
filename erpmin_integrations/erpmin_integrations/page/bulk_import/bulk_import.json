@@ -1,0 +1,20 @@
+{
+ "creation": "2026-03-10 00:00:00.000000",
+ "doctype": "Page",
+ "icon": "upload",
+ "modified": "2026-03-10 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Erpmin Integrations",
+ "name": "bulk-import",
+ "owner": "Administrator",
+ "page_name": "bulk-import",
+ "restrict_to_domain": null,
+ "roles": [
+  {
+   "doctype": "Has Role",
+   "role": "All"
+  }
+ ],
+ "system_page": 0,
+ "title": "Bulk Import"
+}
