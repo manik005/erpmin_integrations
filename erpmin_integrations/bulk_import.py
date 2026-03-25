@@ -183,7 +183,7 @@ def trigger_amazon_category_resync() -> dict:
     Bench equivalent:
         bench --site erp.local execute erpmin_integrations.bulk_import.trigger_amazon_category_resync
     """
-    from erpmin_integrations.doctype.channel_category_mapping.channel_category_mapping import (
+    from erpmin_integrations.erpmin_integrations.doctype.channel_category_mapping.channel_category_mapping import (
         enqueue_resync_for_group,
     )
 

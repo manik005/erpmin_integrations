@@ -18,6 +18,9 @@ class TestAmazonProduct(FrappeTestCase):
         item.custom_amazon_size = ""
         item.custom_amazon_bullet_points = ""
         item.custom_amazon_description = ""
+        # Flat (non-variant) item — must be explicitly falsy for routing logic
+        item.has_variants = 0
+        item.variant_of = None
         return item
 
     def _make_settings(self, price_list=None):

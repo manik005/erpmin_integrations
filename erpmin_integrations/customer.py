@@ -107,7 +107,7 @@ def _create_customer(data: dict, email: str, phone: str) -> str:
     customer_group = "Individual"
     territory = "India"
     try:
-        from erpmin_integrations.doctype.amazon_settings.amazon_settings import (
+        from erpmin_integrations.erpmin_integrations.doctype.amazon_settings.amazon_settings import (
             get_settings,
         )
         settings = get_settings()

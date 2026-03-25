@@ -1,7 +1,7 @@
 import frappe
 from erpmin_integrations.amazon.api import get_client
 from erpmin_integrations.amazon.feeds import build_inventory_feed, submit_feed
-from erpmin_integrations.doctype.amazon_settings.amazon_settings import get_settings
+from erpmin_integrations.erpmin_integrations.doctype.amazon_settings.amazon_settings import get_settings
 from erpmin_integrations.utils.inventory import get_available_qty
 
 BATCH_SIZE = 100
