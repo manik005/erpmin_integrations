@@ -5,24 +5,138 @@ from erpmin_integrations.erpmin_integrations.doctype.opencart_settings.opencart_
 from erpmin_integrations.customer import get_or_create_customer
 
 
+@frappe.whitelist(allow_guest=True)
+def order_webhook():
+    """Receive a new-order webhook from OpenCart and import it into ERPNext.
+
+    OpenCart POSTs:  { "order_id": "123" }
+    with header:     X-Webhook-Secret: <shared_secret>
+    """
+    settings = get_settings()
+    if not settings.enabled:
+        frappe.throw("OpenCart integration is disabled", frappe.PermissionError)
+
+    expected_secret = settings.get_password("webhook_secret") if settings.webhook_secret else None
+    if expected_secret:
+        incoming = frappe.request.headers.get("X-Webhook-Secret", "")
+        if incoming != expected_secret:
+            frappe.throw("Invalid webhook secret", frappe.PermissionError)
+
+    data = frappe.request.get_json(silent=True) or {}
+    order_id = str(data.get("order_id", "")).strip()
+    if not order_id:
+        frappe.throw("order_id is required")
+
+    client = get_client()
+    if not client:
+        frappe.throw("OpenCart client could not be initialised")
+
+    try:
+        _create_sales_order(client, order_id, settings)
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), f"[OpenCart] webhook order import failed: {order_id}")
+        frappe.throw(f"Failed to import order {order_id}")
+
+    return {"status": "ok", "order_id": order_id}
+
+
+@frappe.whitelist(allow_guest=True)
+def cancel_webhook():
+    """Receive an order-cancellation webhook from OpenCart and cancel the ERPNext Sales Order.
+
+    OpenCart POSTs:  { "order_id": "123" }
+    with header:     X-Webhook-Secret: <shared_secret>
+    """
+    settings = get_settings()
+    if not settings.enabled:
+        frappe.throw("OpenCart integration is disabled", frappe.PermissionError)
+
+    expected_secret = settings.get_password("webhook_secret") if settings.webhook_secret else None
+    if expected_secret:
+        incoming = frappe.request.headers.get("X-Webhook-Secret", "")
+        if incoming != expected_secret:
+            frappe.throw("Invalid webhook secret", frappe.PermissionError)
+
+    data = frappe.request.get_json(silent=True) or {}
+    order_id = str(data.get("order_id", "")).strip()
+    if not order_id:
+        frappe.throw("order_id is required")
+
+    so_name = frappe.db.get_value(
+        "Sales Order",
+        {"custom_marketplace_order_id": order_id, "custom_channel": "OpenCart", "docstatus": 1},
+    )
+    if not so_name:
+        return {"status": "skipped", "reason": "not found or already cancelled"}
+
+    try:
+        dn_names = frappe.get_all(
+            "Delivery Note Item",
+            filters={"against_sales_order": so_name},
+            pluck="parent",
+        )
+        for dn_name in set(dn_names):
+            dn = frappe.get_doc("Delivery Note", dn_name)
+            if dn.docstatus == 1:
+                dn.cancel()
+
+        so = frappe.get_doc("Sales Order", so_name)
+        so.cancel()
+        frappe.logger().info(f"[OpenCart] Cancelled SO {so_name} for order {order_id}")
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), f"[OpenCart] cancel_webhook failed: {order_id}")
+        frappe.throw(f"Failed to cancel order {order_id}")
+
+    return {"status": "cancelled", "sales_order": so_name}
+
+
+_PAGE_SIZE = 100
+
+
 def import_orders():
-    """Pull pending OpenCart orders and create ERPNext Sales Orders."""
+    """Pull pending OpenCart orders across all pages and enqueue each for processing."""
     client = get_client()
     if not client:
         return
 
-    settings = get_settings()
-    orders = client.get_new_orders(status_id=1)
+    enqueued = 0
+    start = 0
 
-    for oc_order in orders.get("orders", []):
-        order_id = str(oc_order.get("order_id"))
-        try:
-            _create_sales_order(client, order_id, settings)
-        except Exception:
-            frappe.log_error(
-                frappe.get_traceback(),
-                f"[OpenCart] order import failed: {order_id}",
+    while True:
+        result = client.get_new_orders(status_id=1, start=start, limit=_PAGE_SIZE)
+        page = result.get("orders", [])
+
+        for oc_order in page:
+            order_id = str(oc_order.get("order_id"))
+            frappe.enqueue(
+                "erpmin_integrations.opencart.order._process_order_job",
+                order_id=order_id,
+                queue="short",
+                enqueue_after_commit=True,
             )
+            enqueued += 1
+
+        if len(page) < _PAGE_SIZE:
+            break
+        start += _PAGE_SIZE
+
+    if enqueued:
+        frappe.logger().info(f"[OpenCart] Enqueued {enqueued} orders for processing")
+
+
+def _process_order_job(order_id: str):
+    """Queue job: create a Sales Order for a single OpenCart order."""
+    client = get_client()
+    if not client:
+        return
+    settings = get_settings()
+    try:
+        _create_sales_order(client, order_id, settings)
+    except Exception:
+        frappe.log_error(
+            frappe.get_traceback(),
+            f"[OpenCart] order import failed: {order_id}",
+        )
 
 
 def _create_sales_order(client, order_id, settings):

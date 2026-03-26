@@ -145,8 +145,12 @@ class OpenCartClient:
         created = self._post("/api/v1/categories", data)
         return int(created["category_id"])
 
-    def get_new_orders(self, status_id=1):
-        return self._get("/api/v1/orders", {"order_status_id": status_id})
+    def get_new_orders(self, status_id=1, start=0, limit=100):
+        return self._get("/api/v1/orders", {
+            "order_status_id": status_id,
+            "start": start,
+            "limit": limit,
+        })
 
     def get_order(self, order_id):
         return self._get(f"/api/v1/orders/{order_id}")

@@ -8,6 +8,8 @@
   "enabled",
   "api_url",
   "api_key",
+  "webhook_secret",
+  "alert_email",
   "section_defaults",
   "default_warehouse",
   "default_price_list"
@@ -30,6 +32,19 @@
    "fieldtype": "Password",
    "label": "API Key",
    "reqd": 1
+  },
+  {
+   "fieldname": "webhook_secret",
+   "fieldtype": "Password",
+   "label": "Webhook Secret",
+   "description": "Shared secret sent by OpenCart in X-Webhook-Secret header to authenticate inbound order webhooks"
+  },
+  {
+   "fieldname": "alert_email",
+   "fieldtype": "Data",
+   "label": "Alert Email",
+   "options": "Email",
+   "description": "Comma-separated email addresses to receive daily integration error digests"
   },
   {
    "fieldname": "section_defaults",

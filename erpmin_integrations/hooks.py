@@ -27,9 +27,11 @@ scheduler_events = {
         "*/30 * * * *": [
             "erpmin_integrations.opencart.inventory.sync_all_inventory",
             "erpmin_integrations.amazon.inventory.sync_all_inventory",
+            "erpmin_integrations.amazon.order.sync_order_statuses",
         ],
         "*/15 * * * *": [
             "erpmin_integrations.amazon.order.import_orders",
+            "erpmin_integrations.opencart.order.import_orders",
         ],
         "*/5 * * * *": [
             "erpmin_integrations.amazon.feeds.check_pending_feeds",
@@ -37,6 +39,9 @@ scheduler_events = {
         "0 2 * * *": [
             "erpmin_integrations.opencart.product.full_product_sync",
             "erpmin_integrations.amazon.product.full_product_sync",
+        ],
+        "0 8 * * *": [
+            "erpmin_integrations.utils.alerts.send_error_digest",
         ],
     }
 }

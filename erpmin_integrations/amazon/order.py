@@ -6,7 +6,7 @@ from erpmin_integrations.customer import get_or_create_customer
 
 
 def import_orders():
-    """Poll Amazon SP-API for new orders and create ERPNext Sales Orders."""
+    """Poll Amazon SP-API for new orders across all pages and enqueue each for processing."""
     client = get_client()
     if not client:
         return
@@ -23,25 +23,46 @@ def import_orders():
         )
 
     sync_start = now_datetime()
+    enqueued = 0
 
     try:
         response = client.get_orders(created_after)
-        orders = response.get("payload", {}).get("Orders", [])
-
-        for amz_order in orders:
-            order_id = amz_order.get("AmazonOrderId")
-            try:
-                _create_sales_order(client, amz_order, settings)
-            except Exception:
-                frappe.log_error(
-                    frappe.get_traceback(),
-                    f"[Amazon] order import failed: {order_id}",
+        while True:
+            payload = response.get("payload", {})
+            for amz_order in payload.get("Orders", []):
+                frappe.enqueue(
+                    "erpmin_integrations.amazon.order._process_order_job",
+                    amz_order=amz_order,
+                    queue="short",
+                    enqueue_after_commit=True,
                 )
+                enqueued += 1
+
+            next_token = payload.get("NextToken")
+            if not next_token:
+                break
+            response = client.get_orders_next_page(next_token)
+
+        frappe.logger().info(f"[Amazon] Enqueued {enqueued} orders for processing")
     finally:
         frappe.db.set_value(
             "Amazon Settings", "Amazon Settings", "last_order_sync_time", sync_start
         )
         frappe.db.commit()
+
+
+def _process_order_job(amz_order: dict):
+    """Queue job: create a Sales Order for a single Amazon order."""
+    settings = get_settings()
+    order_id = amz_order.get("AmazonOrderId")
+    try:
+        client = get_client()
+        _create_sales_order(client, amz_order, settings)
+    except Exception:
+        frappe.log_error(
+            frappe.get_traceback(),
+            f"[Amazon] order import failed: {order_id}",
+        )
 
 
 def _create_sales_order(client, amz_order, settings):
@@ -107,6 +128,72 @@ def _create_sales_order(client, amz_order, settings):
             f"[Amazon] SO {so.name} insert OK but submit failed for order {order_id}. "
             "Review and submit manually.",
         )
+
+
+def sync_order_statuses():
+    """Poll Amazon for recently cancelled orders and cancel matching ERPNext Sales Orders."""
+    client = get_client()
+    if not client:
+        return
+
+    settings = get_settings()
+    last_sync = settings.last_status_sync_time
+
+    if last_sync:
+        updated_after = get_datetime(last_sync).strftime("%Y-%m-%dT%H:%M:%SZ")
+    else:
+        from datetime import datetime, timedelta, timezone
+        updated_after = (datetime.now(timezone.utc) - timedelta(hours=24)).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
+
+    sync_start = now_datetime()
+
+    try:
+        response = client.get_orders_updated_after(updated_after, statuses=["Cancelled"])
+        orders = response.get("payload", {}).get("Orders", [])
+
+        for amz_order in orders:
+            order_id = amz_order.get("AmazonOrderId")
+            if amz_order.get("OrderStatus") != "Cancelled":
+                continue
+            try:
+                _cancel_sales_order(order_id)
+            except Exception:
+                frappe.log_error(
+                    frappe.get_traceback(),
+                    f"[Amazon] order cancellation failed: {order_id}",
+                )
+    finally:
+        frappe.db.set_value(
+            "Amazon Settings", "Amazon Settings", "last_status_sync_time", sync_start
+        )
+        frappe.db.commit()
+
+
+def _cancel_sales_order(amazon_order_id: str):
+    """Cancel the ERPNext Sales Order (and any Delivery Notes) for a cancelled Amazon order."""
+    so_name = frappe.db.get_value(
+        "Sales Order",
+        {"custom_marketplace_order_id": amazon_order_id, "docstatus": 1},
+    )
+    if not so_name:
+        return  # already cancelled or never imported
+
+    # Cancel submitted Delivery Notes first
+    dn_names = frappe.get_all(
+        "Delivery Note Item",
+        filters={"against_sales_order": so_name},
+        pluck="parent",
+    )
+    for dn_name in set(dn_names):
+        dn = frappe.get_doc("Delivery Note", dn_name)
+        if dn.docstatus == 1:
+            dn.cancel()
+
+    so = frappe.get_doc("Sales Order", so_name)
+    so.cancel()
+    frappe.logger().info(f"[Amazon] Cancelled SO {so_name} for Amazon order {amazon_order_id}")
 
 
 def _resolve_item_code(sku: str | None) -> str | None:

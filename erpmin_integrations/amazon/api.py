@@ -129,6 +129,21 @@ class SPAPIClient:
         }
         return self.get("/orders/v0/orders", params=params)
 
+    def get_orders_next_page(self, next_token):
+        params = {
+            "MarketplaceIds": self.marketplace_id,
+            "NextToken": next_token,
+        }
+        return self.get("/orders/v0/orders", params=params)
+
+    def get_orders_updated_after(self, updated_after, statuses=None):
+        params = {
+            "MarketplaceIds": self.marketplace_id,
+            "LastUpdatedAfter": updated_after,
+            "OrderStatuses": ",".join(statuses or ["Cancelled"]),
+        }
+        return self.get("/orders/v0/orders", params=params)
+
     def get_order_items(self, order_id):
         return self.get(f"/orders/v0/orders/{order_id}/orderItems")
 
