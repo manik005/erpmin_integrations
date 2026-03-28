@@ -10,6 +10,7 @@ from erpmin_integrations.amazon.attributes import (
     build_parent_attributes,
     build_child_attributes,
 )
+from erpmin_integrations.utils.cdn import get_public_urls_for_item
 
 
 def on_item_save(doc, method=None):
@@ -62,7 +63,10 @@ def _sync_flat_item(item, client):
             "Using generic PRODUCT — listing may be rejected by SP-API."
         )
 
-    attributes = build_attributes(item, product_type)
+    public_base_url = getattr(settings, "public_base_url", "") or ""
+    image_urls = get_public_urls_for_item(item, public_base_url)
+
+    attributes = build_attributes(item, product_type, image_urls=image_urls)
 
     price = _get_item_price(item.name, getattr(settings, "default_price_list", None))
     has_price = price is not None and price > 0
@@ -125,8 +129,12 @@ def _sync_variant_item(item, client):
     parent_sku = template.custom_amazon_sku or template.name
     child_sku = item.custom_amazon_sku or item.name
 
+    public_base_url = getattr(settings, "public_base_url", "") or ""
+    template_image_urls = get_public_urls_for_item(template, public_base_url)
+    item_image_urls = get_public_urls_for_item(item, public_base_url)
+
     # Step 1: PUT parent ASIN (always LISTING_PRODUCT_ONLY — not directly buyable)
-    parent_attrs = build_parent_attributes(template, product_type)
+    parent_attrs = build_parent_attributes(template, product_type, image_urls=template_image_urls)
     parent_url = (
         f"/listings/2021-08-01/items/{settings.seller_id}/{parent_sku}"
         f"?marketplaceIds={settings.marketplace_id}&productType={product_type}"
@@ -150,7 +158,7 @@ def _sync_variant_item(item, client):
     price = _get_item_price(item.name, getattr(settings, "default_price_list", None))
     has_price = price is not None and price > 0
 
-    child_attrs = build_child_attributes(item, product_type, parent_sku=parent_sku)
+    child_attrs = build_child_attributes(item, product_type, parent_sku=parent_sku, image_urls=item_image_urls)
     if has_price:
         child_attrs["purchasable_offer"] = [
             {

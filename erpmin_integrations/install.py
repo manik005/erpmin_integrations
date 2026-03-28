@@ -4,6 +4,7 @@ import frappe
 def after_install():
     _add_item_custom_fields()
     _add_item_variant_mode_field()
+    _add_item_product_images_field()
     _add_item_attribute_custom_fields()
     _add_sales_order_custom_fields()
     _add_sales_order_item_custom_fields()
@@ -132,6 +133,20 @@ def _add_item_variant_mode_field():
             "default": "Group as options",
             "insert_after": "custom_sync_to_amazon",
             "description": "Group as options: variants appear as Size/Color selectors (apparel). Individual products: each variant is its own OpenCart product (perfumes).",
+        },
+    ]
+    _save_fields(fields)
+
+
+def _add_item_product_images_field():
+    fields = [
+        {
+            "dt": "Item",
+            "fieldname": "custom_product_images",
+            "label": "Product Images",
+            "fieldtype": "Table",
+            "options": "Item Product Image",
+            "insert_after": "custom_opencart_name",
         },
     ]
     _save_fields(fields)
@@ -292,6 +307,14 @@ def migrate_item_fields_to_tabs():
         },
         {
             "dt": "Item",
+            "fieldname": "custom_product_images",
+            "label": "Product Images",
+            "fieldtype": "Table",
+            "options": "Item Product Image",
+            "insert_after": "custom_opencart_name",
+        },
+        {
+            "dt": "Item",
             "fieldname": "custom_tab_amazon",
             "label": "Amazon",
             "fieldtype": "Tab Break",
@@ -317,7 +340,8 @@ def migrate_item_fields_to_tabs():
         # appear at the END of the tab bar (after Details, Inventory, Variants, etc.)
         ("custom_tab_opencart",          "total_projected_qty"),
         # OpenCart tab
-        ("custom_opencart_id",           "custom_opencart_name"),
+        ("custom_product_images",        "custom_opencart_name"),
+        ("custom_opencart_id",           "custom_product_images"),
         ("custom_sync_to_opencart",      "custom_opencart_id"),
         ("custom_opencart_variant_mode", "custom_sync_to_opencart"),
         # Amazon tab

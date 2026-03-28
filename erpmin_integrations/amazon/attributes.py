@@ -37,7 +37,7 @@ _ATTRIBUTE_FIELD_MAP: dict[str, tuple[str, str]] = {
 }
 
 
-def build_attributes(item, product_type: str) -> dict:
+def build_attributes(item, product_type: str, image_urls: list[str] | None = None) -> dict:
     """Return SP-API attributes dict for the given item and product type."""
     if product_type not in _SUPPORTED_TYPES:
         frappe.logger().warning(
@@ -46,7 +46,7 @@ def build_attributes(item, product_type: str) -> dict:
         )
         product_type = "PRODUCT"
 
-    attrs = _build_common(item)
+    attrs = _build_common(item, image_urls=image_urls)
 
     if product_type == "CLOTHING":
         attrs.update(_build_clothing(item))
@@ -57,7 +57,7 @@ def build_attributes(item, product_type: str) -> dict:
     return attrs
 
 
-def build_parent_attributes(template_item, product_type: str) -> dict:
+def build_parent_attributes(template_item, product_type: str, image_urls: list[str] | None = None) -> dict:
     """Build SP-API attributes for a parent (template) ASIN listing.
 
     Includes parentage=parent and variation_theme for known product types.
@@ -66,7 +66,7 @@ def build_parent_attributes(template_item, product_type: str) -> dict:
     """
     # Use _build_common directly (not build_attributes) so variant-specific attrs like
     # color/size are NOT added to the parent ASIN — those belong only on child ASINs.
-    attrs = _build_common(template_item)
+    attrs = _build_common(template_item, image_urls=image_urls)
     attrs["parentage"] = [{"value": "parent", "language_tag": _LANG}]
 
     theme = _VARIATION_THEME_MAP.get(product_type)
@@ -81,9 +81,9 @@ def build_parent_attributes(template_item, product_type: str) -> dict:
     return attrs
 
 
-def build_child_attributes(item, product_type: str, parent_sku: str) -> dict:
+def build_child_attributes(item, product_type: str, parent_sku: str, image_urls: list[str] | None = None) -> dict:
     """Build SP-API attributes for a child variant ASIN listing."""
-    attrs = build_attributes(item, product_type)
+    attrs = build_attributes(item, product_type, image_urls=image_urls)
     attrs["parentage"] = [{"value": "child", "language_tag": _LANG}]
     attrs["child_parent_sku_relationship"] = [
         {
@@ -120,7 +120,7 @@ def _get_attribute_value(item, attribute_name: str) -> str:
     return ""
 
 
-def _build_common(item) -> dict:
+def _build_common(item, image_urls: list[str] | None = None) -> dict:
     attrs = {
         "item_name": [{"value": getattr(item, "custom_amazon_title", "") or item.item_name, "language_tag": _LANG}],
     }
@@ -151,6 +151,11 @@ def _build_common(item) -> dict:
             frappe.logger().warning(
                 f"[Amazon] Item has barcodes but none are EAN/UPC. GTIN not submitted to SP-API."
             )
+
+    if image_urls:
+        attrs["main_product_image_locator"] = [{"media_location": image_urls[0]}]
+        for idx, url in enumerate(image_urls[1:9], start=1):
+            attrs[f"other_product_image_locator_{idx}"] = [{"media_location": url}]
 
     return attrs
 

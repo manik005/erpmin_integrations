@@ -145,6 +145,29 @@ class OpenCartClient:
         created = self._post("/api/v1/categories", data)
         return int(created["category_id"])
 
+    def upload_image(self, item_code: str, file_path: str) -> str | None:
+        """Upload a local image to OpenCart. Returns relative path like 'catalog/erpmin/ITEM.jpg'."""
+        import os
+        if not os.path.isfile(file_path):
+            return None
+        with open(file_path, "rb") as f:
+            # Pass files= so requests sets multipart/form-data, overriding the session JSON header
+            response = self.session.post(
+                f"{self.api_url}/api/v1/images",
+                files={"file": (os.path.basename(file_path), f)},
+                data={"item_code": item_code},
+                timeout=60,
+            )
+        response.raise_for_status()
+        return response.json().get("image")
+
+    def set_product_images(self, product_id: int, image_paths: list[str]) -> None:
+        """Set additional (non-primary) product images on OpenCart."""
+        self._put(
+            f"/api/v1/products/{product_id}/images",
+            {"images": image_paths},
+        )
+
     def get_new_orders(self, status_id=1, start=0, limit=100):
         return self._get("/api/v1/orders", {
             "order_status_id": status_id,

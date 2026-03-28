@@ -20,7 +20,9 @@
   "default_warehouse",
   "default_customer_group",
   "default_territory",
-  "default_price_list"
+  "default_price_list",
+  "section_images",
+  "public_base_url"
  ],
  "fields": [
   {
@@ -122,6 +124,17 @@
    "fieldtype": "Link",
    "label": "Default Price List",
    "options": "Price List"
+  },
+  {
+   "fieldname": "section_images",
+   "fieldtype": "Section Break",
+   "label": "Product Images"
+  },
+  {
+   "description": "Base URL for publicly accessible product images (e.g. https://erp.example.com). Used to construct image URLs sent to Amazon SP-API. Leave blank to skip image sync.",
+   "fieldname": "public_base_url",
+   "fieldtype": "Data",
+   "label": "Public Base URL"
   }
  ],
  "issingle": 1,

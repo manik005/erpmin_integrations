@@ -81,6 +81,47 @@ def sync_item(item_code, client=None):
         _sync_flat_item(item, client)
 
 
+def _get_oc_images(item, client) -> list[str]:
+    """Upload item images to OpenCart. Returns list of OC relative paths.
+
+    Reads from custom_product_images child table sorted by sort_order (images only),
+    falls back to item.image if the table is empty. Caches each upload for 24h.
+    """
+    import os
+
+    rows = sorted(
+        getattr(item, "custom_product_images", []) or [],
+        key=lambda r: (getattr(r, "sort_order", 0) or 0),
+    )
+    image_urls = [
+        getattr(r, "file", "") for r in rows
+        if (getattr(r, "file", "") or "").startswith("/files/")
+        and (getattr(r, "media_type", "Image") or "Image") == "Image"
+    ]
+    if not image_urls:
+        primary = getattr(item, "image", "") or ""
+        if primary.startswith("/files/"):
+            image_urls = [primary]
+
+    oc_paths = []
+    for idx, image_url in enumerate(image_urls):
+        cache_key = f"oc_image:{item.name}:{idx}"
+        cached = frappe.cache().get_value(cache_key)
+        if cached:
+            oc_paths.append(cached)
+            continue
+        file_path = os.path.join(frappe.get_site_path(), "public", image_url.lstrip("/"))
+        upload_name = f"{item.name}_{idx}" if idx > 0 else item.name
+        try:
+            oc_path = client.upload_image(upload_name, file_path)
+            if oc_path:
+                frappe.cache().set_value(cache_key, oc_path, expires_in_sec=86400)
+                oc_paths.append(oc_path)
+        except Exception:
+            frappe.logger().warning(f"[OpenCart] Image upload failed for {item.name} idx={idx}")
+    return oc_paths
+
+
 def _sync_flat_item(item, client):
     settings = get_settings()
     price = _get_item_price(item.name, settings.default_price_list)
@@ -97,6 +138,9 @@ def _sync_flat_item(item, client):
         "status": 1 if is_active else 0,
         "category_id": [category_id] if category_id else [],
     }
+    oc_images = _get_oc_images(item, client)
+    if oc_images:
+        product_data["image"] = oc_images[0]
 
     existing = client.get_product_by_sku(item.name)
     if existing:
@@ -109,6 +153,9 @@ def _sync_flat_item(item, client):
         product_id = result.get("product_id")
         if product_id:
             frappe.db.set_value("Item", item.name, "custom_opencart_id", product_id)
+
+    if product_id and len(oc_images) > 1:
+        client.set_product_images(product_id, oc_images[1:])
 
     frappe.logger().info(f"[OpenCart] Synced product: {item.name}")
 
@@ -141,6 +188,9 @@ def _sync_variant_item(item, client, template=None):
                 "status": 0,
                 "category_id": [category_id] if category_id else [],
             }
+            oc_images = _get_oc_images(template, client)
+            if oc_images:
+                parent_data["image"] = oc_images[0]
             result = client.create_product(parent_data)
             parent_product_id = result.get("product_id")
             if not parent_product_id:
