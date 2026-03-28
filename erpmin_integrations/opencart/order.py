@@ -154,6 +154,7 @@ def _create_sales_order(client, order_id, settings):
     so.customer = customer
     so.custom_channel = "OpenCart"
     so.custom_marketplace_order_id = order_id
+    so.custom_shipping_method = _extract_shipping_method(order)
     so.delivery_date = frappe.utils.add_days(frappe.utils.today(), 3)
     so.price_list = settings.default_price_list
     so.set_warehouse = settings.default_warehouse
@@ -181,6 +182,18 @@ def _create_sales_order(client, order_id, settings):
 
     client.update_order_status(order_id, 2, "Order imported to ERP")
     frappe.logger().info(f"[OpenCart] Imported order {order_id} → {so.name}")
+
+
+def _extract_shipping_method(order: dict) -> str:
+    """Return a human-readable shipping method string from the OpenCart order."""
+    method = (order.get("shipping_method") or "").strip()
+    code = (order.get("shipping_code") or "").strip()
+    if method:
+        return method
+    # shipping_code is like "flat.flat" or "free.free" — return the prefix as fallback
+    if code:
+        return code.split(".")[0].title()
+    return ""
 
 
 def _normalize_customer_data(order: dict) -> dict:

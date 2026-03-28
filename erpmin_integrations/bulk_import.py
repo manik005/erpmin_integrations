@@ -19,7 +19,7 @@ _ITEM_AMAZON_FIELDS = [
 
 
 @whitelist()
-def import_item_amazon_fields(csv_data: str) -> dict:
+def import_item_amazon_fields(csv_data: str, dry_run: bool = False) -> dict:
     """Bulk update Amazon fields on Item records from a CSV string.
 
     CSV columns: item_code, custom_amazon_product_type, custom_amazon_brand,
@@ -28,8 +28,11 @@ def import_item_amazon_fields(csv_data: str) -> dict:
 
     All columns except item_code are optional (sparse update).
 
+    Args:
+        dry_run: If True, validate only — no data is written.
+
     Returns:
-        {"imported": N, "skipped": N, "errors": [{"row": R, "reason": "..."}]}
+        {"imported": N, "skipped": N, "errors": [...], "dry_run": bool}
     """
     reader = csv.DictReader(io.StringIO(csv_data))
     imported = 0
@@ -54,15 +57,16 @@ def import_item_amazon_fields(csv_data: str) -> dict:
                 for field in _ITEM_AMAZON_FIELDS
                 if field in row and row[field].strip() != ""
             }
-            if updates:
+            if updates and not dry_run:
                 frappe.db.set_value("Item", item_code, updates)
             imported += 1
         except Exception as e:
             skipped += 1
             errors.append({"row": row_num, "reason": str(e)})
 
-    frappe.db.commit()
-    return {"imported": imported, "skipped": skipped, "errors": errors}
+    if not dry_run:
+        frappe.db.commit()
+    return {"imported": imported, "skipped": skipped, "errors": errors, "dry_run": dry_run}
 
 
 @whitelist()

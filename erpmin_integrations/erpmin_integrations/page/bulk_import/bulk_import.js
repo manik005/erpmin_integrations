@@ -35,6 +35,7 @@ class BulkImportPage {
     setup_tab(tab_id, config) {
         const $tab = this.page.main.find(`#${tab_id}`);
         const $file_input = $tab.find('.csv-file-input');
+        const $preview_btn = $tab.find('.preview-btn');
         const $import_btn = $tab.find('.import-btn');
         const $results = $tab.find('.import-results');
 
@@ -47,8 +48,32 @@ class BulkImportPage {
         });
 
         $file_input.on('change', () => {
-            $import_btn.prop('disabled', !$file_input[0].files.length);
+            const has_file = !!$file_input[0].files.length;
+            $preview_btn.prop('disabled', !has_file);
+            $import_btn.prop('disabled', !has_file);
             $results.hide().empty();
+        });
+
+        $preview_btn.on('click', () => {
+            const file = $file_input[0].files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                $preview_btn.prop('disabled', true).text(__('Previewing…'));
+                frappe.call({
+                    method: config.import_method,
+                    args: { csv_data: e.target.result, dry_run: true },
+                    callback: (r) => {
+                        this._show_results($tab, r.message, e.target.result, config);
+                        $preview_btn.prop('disabled', false).text(__('Preview'));
+                    },
+                    error: () => {
+                        $preview_btn.prop('disabled', false).text(__('Preview'));
+                    },
+                });
+            };
+            reader.readAsText(file);
         });
 
         $import_btn.on('click', () => {
@@ -60,7 +85,7 @@ class BulkImportPage {
                 $import_btn.prop('disabled', true).text(__('Importing…'));
                 frappe.call({
                     method: config.import_method,
-                    args: { csv_data: e.target.result },
+                    args: { csv_data: e.target.result, dry_run: false },
                     callback: (r) => {
                         this._show_results($tab, r.message);
                         $import_btn.prop('disabled', false).text(__('Import'));
@@ -74,10 +99,19 @@ class BulkImportPage {
         });
     }
 
-    _show_results($tab, result) {
+    _show_results($tab, result, csv_data, config) {
         if (!result) return;
         const $results = $tab.find('.import-results');
-        let html = `<div class="alert alert-success mb-2">✓ ${result.imported} rows imported</div>`;
+        let html = '';
+
+        if (result.dry_run) {
+            html += `<div class="alert alert-info mb-2">
+                <strong>Preview only — no data was changed.</strong>
+                ${result.imported} row(s) would be imported, ${result.skipped} would be skipped.
+            </div>`;
+        } else {
+            html += `<div class="alert alert-success mb-2">✓ ${result.imported} rows imported</div>`;
+        }
 
         if (result.skipped > 0) {
             html += `<div class="alert alert-warning mb-2">⚠ ${result.skipped} rows skipped</div>`;
@@ -92,11 +126,32 @@ class BulkImportPage {
             html += `<button class="btn btn-sm btn-default download-errors-btn">⬇ Download Errors CSV</button>`;
         }
 
+        if (result.dry_run && result.imported > 0) {
+            html += `<button class="btn btn-sm btn-primary confirm-import-btn ms-2">Confirm Import</button>`;
+        }
+
         $results.html(html).show();
 
         if (result.skipped > 0) {
             $results.find('.download-errors-btn').on('click', () => {
                 this._download_errors(result.errors);
+            });
+        }
+
+        if (result.dry_run && config && csv_data) {
+            $results.find('.confirm-import-btn').on('click', () => {
+                const $btn = $results.find('.confirm-import-btn');
+                $btn.prop('disabled', true).text(__('Importing…'));
+                frappe.call({
+                    method: config.import_method,
+                    args: { csv_data: csv_data, dry_run: false },
+                    callback: (r) => {
+                        this._show_results($tab, r.message);
+                    },
+                    error: () => {
+                        $btn.prop('disabled', false).text(__('Confirm Import'));
+                    },
+                });
             });
         }
     }

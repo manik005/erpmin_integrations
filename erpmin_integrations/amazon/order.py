@@ -121,6 +121,9 @@ def _create_sales_order(client, amz_order, settings):
 
     try:
         so.submit()
+        frappe.db.set_value(
+            "Sales Order", so.name, "custom_amazon_acknowledged_at", now_datetime()
+        )
         frappe.logger().info(f"[Amazon] Imported order {order_id} → {so.name}")
     except Exception:
         frappe.log_error(

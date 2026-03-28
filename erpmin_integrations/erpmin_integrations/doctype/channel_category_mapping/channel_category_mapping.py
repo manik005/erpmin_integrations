@@ -28,13 +28,16 @@ def get_amazon_product_type(item_group):
 
 
 @whitelist()
-def import_category_mappings(csv_data: str) -> dict:
+def import_category_mappings(csv_data: str, dry_run: bool = False) -> dict:
     """Upsert Channel Category Mapping rows from a CSV string.
 
     CSV columns: item_group, opencart_category_id, opencart_category_name, amazon_product_type
 
+    Args:
+        dry_run: If True, validate only — no data is written.
+
     Returns:
-        {"imported": N, "skipped": N, "errors": [{"row": R, "reason": "..."}]}
+        {"imported": N, "skipped": N, "errors": [...], "dry_run": bool}
     """
     reader = csv.DictReader(io.StringIO(csv_data))
     imported = 0
@@ -58,29 +61,31 @@ def import_category_mappings(csv_data: str) -> dict:
         )
 
         try:
-            if existing_name:
-                doc = frappe.get_doc("Channel Category Mapping", existing_name)
-            else:
-                doc = frappe.new_doc("Channel Category Mapping")
-                doc.item_group = item_group
+            if not dry_run:
+                if existing_name:
+                    doc = frappe.get_doc("Channel Category Mapping", existing_name)
+                else:
+                    doc = frappe.new_doc("Channel Category Mapping")
+                    doc.item_group = item_group
 
-            oc_id = row.get("opencart_category_id", "")
-            doc.opencart_category_id = int(oc_id) if oc_id.strip().isdigit() else 0
-            doc.opencart_category_name = (row.get("opencart_category_name") or "").strip()
-            doc.amazon_product_type = (row.get("amazon_product_type") or "").strip().upper()
+                oc_id = row.get("opencart_category_id", "")
+                doc.opencart_category_id = int(oc_id) if oc_id.strip().isdigit() else 0
+                doc.opencart_category_name = (row.get("opencart_category_name") or "").strip()
+                doc.amazon_product_type = (row.get("amazon_product_type") or "").strip().upper()
 
-            if existing_name:
-                doc.save(ignore_permissions=True)
-            else:
-                doc.insert(ignore_permissions=True)
+                if existing_name:
+                    doc.save(ignore_permissions=True)
+                else:
+                    doc.insert(ignore_permissions=True)
 
             imported += 1
         except Exception as e:
             skipped += 1
             errors.append({"row": row_num, "reason": str(e)})
 
-    frappe.db.commit()
-    return {"imported": imported, "skipped": skipped, "errors": errors}
+    if not dry_run:
+        frappe.db.commit()
+    return {"imported": imported, "skipped": skipped, "errors": errors, "dry_run": dry_run}
 
 
 def enqueue_resync_for_group(item_group: str):

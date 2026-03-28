@@ -17,7 +17,6 @@
   "last_order_sync_time",
   "last_status_sync_time",
   "section_defaults",
-  "alert_email",
   "default_warehouse",
   "default_customer_group",
   "default_territory",
@@ -89,13 +88,6 @@
    "label": "Last Status Sync Time"
   },
   {
-   "fieldname": "alert_email",
-   "fieldtype": "Data",
-   "label": "Alert Email",
-   "options": "Email",
-   "description": "Comma-separated email addresses to receive daily integration error digests"
-  },
-  {
    "fieldname": "section_defaults",
    "fieldtype": "Section Break",
    "label": "Defaults"
@@ -134,7 +126,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-03-04 00:00:00.000000",
+ "modified": "2026-03-28 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Erpmin Integrations",
  "name": "Amazon Settings",

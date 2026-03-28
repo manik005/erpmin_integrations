@@ -8,6 +8,7 @@ def after_install():
     _add_sales_order_custom_fields()
     _add_sales_order_item_custom_fields()
     _add_customer_custom_fields()
+    migrate_item_fields_to_tabs()
     frappe.db.commit()
 
 
@@ -169,6 +170,24 @@ def _add_sales_order_custom_fields():
             "fieldtype": "Data",
             "insert_after": "custom_channel",
         },
+        {
+            "dt": "Sales Order",
+            "fieldname": "custom_shipping_method",
+            "label": "Shipping Method",
+            "fieldtype": "Data",
+            "insert_after": "custom_marketplace_order_id",
+            "read_only": 1,
+            "description": "Shipping method selected by the customer in OpenCart",
+        },
+        {
+            "dt": "Sales Order",
+            "fieldname": "custom_amazon_acknowledged_at",
+            "label": "Amazon Acknowledged At",
+            "fieldtype": "Datetime",
+            "insert_after": "custom_shipping_method",
+            "read_only": 1,
+            "description": "Timestamp when this order was acknowledged (imported into ERPNext) from Amazon",
+        },
     ]
     _save_fields(fields)
 
@@ -235,6 +254,119 @@ def set_perfume_variant_modes():
             frappe.db.set_value("Item", name, "custom_opencart_variant_mode", "Individual products")
 
     frappe.db.commit()
+
+
+def migrate_item_fields_to_tabs():
+    """Add OpenCart and Amazon tabs to the Item form and reorganise custom fields under them.
+
+    Safe to re-run. Creates Tab Break + channel-name fields if missing, then
+    updates insert_after on all existing Item custom fields to achieve the layout:
+
+        [OpenCart tab]
+          OpenCart Name, OpenCart Product ID, Sync to OpenCart, OpenCart Variant Mode
+
+        [Amazon tab]
+          Amazon Title, Amazon SKU, Sync to Amazon, Amazon Status, Amazon Last Synced At,
+          Amazon Last Sync Error, Amazon Product Type (Override), Amazon Brand, Amazon Color,
+          Amazon Size, Amazon Bullet Points, Amazon Description
+
+    Run once on existing installations:
+        bench --site erp.local execute erpmin_integrations.install.migrate_item_fields_to_tabs
+    """
+    # Step 1: add new fields (idempotent — skipped if already exist)
+    _save_fields([
+        {
+            "dt": "Item",
+            "fieldname": "custom_tab_opencart",
+            "label": "OpenCart",
+            "fieldtype": "Tab Break",
+            "insert_after": "custom_discontinued_date",
+        },
+        {
+            "dt": "Item",
+            "fieldname": "custom_opencart_name",
+            "label": "OpenCart Name",
+            "fieldtype": "Data",
+            "insert_after": "custom_tab_opencart",
+            "description": "Product name shown on OpenCart. Falls back to Item Name if empty.",
+        },
+        {
+            "dt": "Item",
+            "fieldname": "custom_tab_amazon",
+            "label": "Amazon",
+            "fieldtype": "Tab Break",
+            "insert_after": "custom_opencart_variant_mode",
+        },
+        {
+            "dt": "Item",
+            "fieldname": "custom_amazon_title",
+            "label": "Amazon Title",
+            "fieldtype": "Data",
+            "insert_after": "custom_tab_amazon",
+            "description": "Listing title sent to Amazon. Falls back to Item Name if empty.",
+        },
+    ])
+
+    # Step 2: update insert_after on existing fields to put them in the right tabs
+    reorder = [
+        # Details tab — anchor after 'disabled' (stays in native Details tab).
+        # Anchoring to item_code caused the entire Details tab content to be
+        # pulled into the Amazon tab because our Tab Breaks interrupted the chain.
+        ("custom_discontinued_date",     "disabled"),
+        # Tab Breaks — anchor after the last native Item field so our custom tabs
+        # appear at the END of the tab bar (after Details, Inventory, Variants, etc.)
+        ("custom_tab_opencart",          "total_projected_qty"),
+        # OpenCart tab
+        ("custom_opencart_id",           "custom_opencart_name"),
+        ("custom_sync_to_opencart",      "custom_opencart_id"),
+        ("custom_opencart_variant_mode", "custom_sync_to_opencart"),
+        # Amazon tab
+        ("custom_amazon_sku",            "custom_amazon_title"),
+        ("custom_sync_to_amazon",        "custom_amazon_sku"),
+        ("custom_amazon_status",         "custom_sync_to_amazon"),
+        ("custom_amazon_last_sync",      "custom_amazon_status"),
+        ("custom_amazon_sync_error",     "custom_amazon_last_sync"),
+        ("custom_amazon_product_type",   "custom_amazon_sync_error"),
+        ("custom_amazon_brand",          "custom_amazon_product_type"),
+        ("custom_amazon_color",          "custom_amazon_brand"),
+        ("custom_amazon_size",           "custom_amazon_color"),
+        ("custom_amazon_bullet_points",  "custom_amazon_size"),
+        ("custom_amazon_description",    "custom_amazon_bullet_points"),
+    ]
+
+    for fieldname, insert_after in reorder:
+        cf_name = frappe.db.get_value("Custom Field", {"dt": "Item", "fieldname": fieldname})
+        if cf_name:
+            frappe.db.set_value("Custom Field", cf_name, "insert_after", insert_after)
+
+    frappe.db.commit()
+    frappe.logger().info("[install] Item custom fields reorganised into OpenCart / Amazon tabs")
+
+
+def debug_field_order():
+    """Print all custom Item fields and their insert_after values for debugging tab layout."""
+    rows = frappe.db.sql("""
+        SELECT fieldname, label, fieldtype, insert_after
+        FROM `tabCustom Field`
+        WHERE dt='Item'
+        ORDER BY fieldname
+    """, as_dict=True)
+    for r in rows:
+        print(r.fieldname, "|", r.fieldtype, "| after:", r.insert_after)
+
+    print("\n--- Native Item fields in Details tab (up to dashboard_tab) ---")
+    dt = frappe.get_doc("DocType", "Item")
+    in_details = False
+    for f in dt.fields:
+        if f.fieldname == "details":
+            in_details = True
+        if f.fieldname == "dashboard_tab":
+            break
+        if in_details:
+            print(f.fieldname, "|", f.fieldtype, "|", f.label)
+    print("\n--- Last 5 native Item fields ---")
+    for f in dt.fields[-5:]:
+        print(f.fieldname, "|", f.fieldtype, "|", f.label)
 
 
 def _save_fields(field_list):

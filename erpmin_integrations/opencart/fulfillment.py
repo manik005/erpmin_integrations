@@ -47,6 +47,15 @@ def send_shipment_update(delivery_note, opencart_order_id):
     tracking_no = (dn.lr_no or "").strip()
     carrier = (dn.transporter_name or "").strip()
 
+    # Fall back to the shipping method stored on the Sales Order
+    if not carrier:
+        so_name = next(
+            (item.against_sales_order for item in dn.items if item.against_sales_order),
+            None,
+        )
+        if so_name:
+            carrier = frappe.db.get_value("Sales Order", so_name, "custom_shipping_method") or ""
+
     comment = "Shipped"
     if carrier and tracking_no:
         comment = f"Shipped via {carrier}. Tracking: {tracking_no}"

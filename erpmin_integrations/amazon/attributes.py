@@ -122,7 +122,7 @@ def _get_attribute_value(item, attribute_name: str) -> str:
 
 def _build_common(item) -> dict:
     attrs = {
-        "item_name": [{"value": item.item_name, "language_tag": _LANG}],
+        "item_name": [{"value": getattr(item, "custom_amazon_title", "") or item.item_name, "language_tag": _LANG}],
     }
 
     brand = getattr(item, "custom_amazon_brand", "") or ""

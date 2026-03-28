@@ -1,0 +1,90 @@
+{
+ "actions": [],
+ "creation": "2026-03-28 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_alerts",
+  "alert_email",
+  "section_toggles",
+  "enable_error_digest",
+  "enable_low_stock_alerts",
+  "enable_gstr1_auto_report",
+  "section_stock",
+  "low_stock_threshold"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_alerts",
+   "fieldtype": "Section Break",
+   "label": "Alerts"
+  },
+  {
+   "fieldname": "alert_email",
+   "fieldtype": "Small Text",
+   "label": "Alert Email(s)",
+   "description": "Comma-separated email addresses for all system alerts: integration errors, low stock, and GSTR-1 reports"
+  },
+  {
+   "fieldname": "section_toggles",
+   "fieldtype": "Section Break",
+   "label": "Scheduled Reports"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_error_digest",
+   "fieldtype": "Check",
+   "label": "Enable Daily Error Digest",
+   "description": "Send a daily email listing integration errors from the last 24 hours (runs at 8 AM)"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_low_stock_alerts",
+   "fieldtype": "Check",
+   "label": "Enable Low Stock Alerts",
+   "description": "Send a daily email when items synced to OpenCart or Amazon drop below the threshold (runs at 8 AM)"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_gstr1_auto_report",
+   "fieldtype": "Check",
+   "label": "Enable Monthly GSTR-1 Report",
+   "description": "Send an HSN-wise GSTR-1 summary email on the 1st of each month for the previous month"
+  },
+  {
+   "fieldname": "section_stock",
+   "fieldtype": "Section Break",
+   "label": "Stock"
+  },
+  {
+   "default": "10",
+   "fieldname": "low_stock_threshold",
+   "fieldtype": "Int",
+   "label": "Low Stock Threshold",
+   "description": "Alert when available qty in sync warehouse drops to or below this value"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-03-28 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Erpmin Integrations",
+ "name": "ERPmin Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 0
+}

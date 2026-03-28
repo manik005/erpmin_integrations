@@ -45,6 +45,10 @@ scheduler_events = {
         ],
         "0 8 * * *": [
             "erpmin_integrations.utils.alerts.send_error_digest",
+            "erpmin_integrations.utils.alerts.send_low_stock_alert",
+        ],
+        "0 8 1 * *": [
+            "erpmin_integrations.utils.gst.generate_gstr1_report",
         ],
     }
 }

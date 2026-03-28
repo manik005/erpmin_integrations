@@ -90,7 +90,7 @@ def _sync_flat_item(item, client):
     product_data = {
         "sku": item.name,
         "model": item.name,
-        "name": {"1": item.item_name},
+        "name": {"1": item.custom_opencart_name or item.item_name},
         "description": {"1": item.description or ""},
         "price": price,
         "quantity": 0,
@@ -134,7 +134,7 @@ def _sync_variant_item(item, client, template=None):
             parent_data = {
                 "sku": parent_sku,
                 "model": parent_sku,
-                "name": {"1": template.item_name},
+                "name": {"1": template.custom_opencart_name or template.item_name},
                 "description": {"1": template.description or ""},
                 "price": 0,
                 "quantity": 0,
