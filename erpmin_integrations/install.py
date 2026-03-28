@@ -280,7 +280,7 @@ def migrate_item_fields_to_tabs():
             "fieldname": "custom_tab_opencart",
             "label": "OpenCart",
             "fieldtype": "Tab Break",
-            "insert_after": "custom_discontinued_date",
+            "insert_after": "total_projected_qty",
         },
         {
             "dt": "Item",
@@ -353,20 +353,6 @@ def debug_field_order():
     """, as_dict=True)
     for r in rows:
         print(r.fieldname, "|", r.fieldtype, "| after:", r.insert_after)
-
-    print("\n--- Native Item fields in Details tab (up to dashboard_tab) ---")
-    dt = frappe.get_doc("DocType", "Item")
-    in_details = False
-    for f in dt.fields:
-        if f.fieldname == "details":
-            in_details = True
-        if f.fieldname == "dashboard_tab":
-            break
-        if in_details:
-            print(f.fieldname, "|", f.fieldtype, "|", f.label)
-    print("\n--- Last 5 native Item fields ---")
-    for f in dt.fields[-5:]:
-        print(f.fieldname, "|", f.fieldtype, "|", f.label)
 
 
 def _save_fields(field_list):

@@ -20,6 +20,9 @@ doc_events = {
             "erpmin_integrations.opencart.fulfillment.on_delivery_note_submit",
         ],
     },
+    "Sales Order": {
+        "validate": "erpmin_integrations.sales_order.validate",
+    },
     "Channel Category Mapping": {
         "after_save": "erpmin_integrations.erpmin_integrations.doctype.channel_category_mapping.channel_category_mapping.on_mapping_save",
     },
